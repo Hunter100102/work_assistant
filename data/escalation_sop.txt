@@ -1,0 +1,81 @@
+Escalation Hierarchy – YME10 Transaction (ZSI Priority List)
+Priority 1 – CEO/VP
+Priority 2 – GM, RAM, Regional or Area Manager, Buyback, Diamond VIP
+Priority 3 – DM, AOM, New Model, Platinum VIP, MBUSA making payment
+
+(Be sure to input the requesting person's name in the CAC field if requested by anyone above)
+
+Priority 4 – CAC / CP Mailbox (non-AOM) / Workbench
+Priority 5 – ETA (regardless of ETA date)
+
+⚙️ ETA Case Handling (Priority 5)
+For GLC Cases or any Special Models (e.g. Maybach, AMG, G-Wagon, EQ, new models 190/197/199/117/167), escalate automatically with PRM.
+
+If ETA < 2 weeks: No escalation; provide ETA.
+
+If ETA > 2 weeks: Create a Shortage Query.
+
+If follow-up date worsens or exceeds 4 weeks → Create SE and convert to CP.
+
+✅ Always Check:
+YMEIV: Available or inbound stock
+
+Parts Locator: D2D flag (D2D eligible = contact CPM to process)
+
+YPIM: Check for substitutes
+
+Equal subs (A-type): Have dealer order
+
+Non-equal subs (AE/RE): Send to Parts Technical for VIN fit
+
+Remanufactured parts: Suffix 80/83/87 → check “New” versions and vice versa
+
+Color-coded parts: e.g., suffix "9999" → Check for alternates
+
+📥 CP Case Handling (Priority 4)
+Case must have a VIN
+
+New model? → Create FastLane
+
+⚡ Fast Lane Escalation
+Fast Lane (Priority 3)
+For: DM, AOM, Buyback, New Model, Platinum VIP, MBUSA payments
+Requirements:
+
+Must be at 70+ backorder days
+
+Escalation must reach Management or Workbench
+
+Steps:
+
+Check XPPI & SO+ for alternates
+
+Contact Parts Technical and Canada stock
+
+Submit Fast Lane if no resolution
+
+🔥 Fast Lane + Escalation
+Priority 2
+For: GM, RAM, Regional/Area Manager, Buyback, Diamond VIP
+
+Ask: Can you cannibalize a car in the car park?
+
+Escalate via Product Management Manager (depends on model)
+
+Contact: Mark May (MBUSA Car park)
+
+Priority 1
+For: CEO / VP
+
+Manual escalation to Maastricht with support from leadership
+
+Same checks as Priority 2
+
+🏢 MBUSI Cases
+Check YMEIV2 (PDCs preferred)
+
+Visit MBUSI Portal: http://spweb.us138.corpintra.net/serviceparts.aspx
+
+If no uncommitted pieces or no "Delivery Created" → Convert to CP
+
+If invoiced/in-transit → Do NOT convert

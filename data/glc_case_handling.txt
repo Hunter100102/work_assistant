@@ -1,0 +1,29 @@
+TITLE: GLC Case Handling Guide
+
+📌 When to Create a GLC Case
+- For standard ETA delays over 2 weeks
+- When the PO shows no updated confirmation after 14 days
+- For Maybach, AMG, or G-Wagon orders (special vehicles) — escalate automatically
+
+✅ Steps:
+1. Check YPIM for substitute parts or stock
+2. If ATP exists, send outbound and close case
+3. If no ATP, create Shortage Escalation (SE)
+4. Escalate to CP if follow-up date > 4 weeks
+
+💬 Sample Comments:
+- "ETA remains unchanged > 4 weeks, creating SE and escalating to CP."
+- "GLC order for special vehicle. Escalating via PRM per SOP."
+
+🚨 Do NOT escalate if:
+- ATP exists and delivery is confirmed
+- VIN is missing and dealer is unresponsive
+- It's a stock order without urgency
+
+📎 Tools Used:
+- YPIM
+- SO+
+- XHPI
+- DView (for shipment and invoice tracking)
+- YME10 (for escalation)
+
