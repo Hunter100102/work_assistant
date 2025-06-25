@@ -1,23 +1,37 @@
 from llama_index.core import SimpleDirectoryReader, VectorStoreIndex
-from llama_index.llms.ollama import OllamaLLM
+from llama_index.core import Settings
+from llama_index.llms.ollama import Ollama
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 
-# Load documents from the data folder
+# Set the LLM to use the correct local model
+llm = Ollama(
+    model="phi3:mini",
+    base_url="http://localhost:11434",
+    request_timeout=120,
+    context_window=2048,  # Cap the token window
+    additional_kwargs={"num_ctx": 2048}
+)
+print(llm.complete("What is a GLC case?"))
+
+
+# Use lightweight HuggingFace embedding model
+Settings.llm = llm  # Ensure Settings uses it globally
+Settings.embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2")
+
+# Load work documents from the local folder
 documents = SimpleDirectoryReader("data").load_data()
 
-# Use local Ollama model
-llm = OllamaLLM(model="mistral")
-
-# Index documents
+# Build a vector index from the documents
 index = VectorStoreIndex.from_documents(documents)
 
-# Query engine with local model
-query_engine = index.as_query_engine(llm=llm)
+# Create a query engine from the index
+query_engine = index.as_query_engine()
 
-# Chat loop
-print("📎 Work Chatbot ready! Ask your question or type 'exit'")
+# Start interactive chatbot
+print("🤖 Mercedes Work Assistant Ready! Type a question or 'exit'")
 while True:
-    query = input("🔍 You: ")
-    if query.lower() in ['exit', 'quit']:
+    user_input = input("You: ")
+    if user_input.lower() in ['exit', 'quit']:
         break
-    response = query_engine.query(query)
-    print("🤖 Bot:", response)
+    response = query_engine.query(user_input)
+    print("Bot:", response)
