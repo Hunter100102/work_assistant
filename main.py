@@ -7,11 +7,11 @@ from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 llm = Ollama(
     model="phi3:mini",
     base_url="http://localhost:11434",
-    request_timeout=120,
+    request_timeout=500,
     context_window=2048,  # Cap the token window
     additional_kwargs={"num_ctx": 2048}
 )
-print(llm.complete("What is a GLC case?"))
+print(llm.complete("What is the company name?"))
 
 
 # Use lightweight HuggingFace embedding model
