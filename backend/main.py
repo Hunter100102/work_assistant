@@ -1,5 +1,5 @@
-# main.py
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 from llama_index.core import (
     SimpleDirectoryReader,
     VectorStoreIndex,
@@ -11,6 +11,7 @@ from llama_index.llms.ollama import Ollama
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 import os
 
+# Connect to Ollama running locally on your Render container
 llm = Ollama(
     model="phi3:mini",
     base_url="http://localhost:11434",
@@ -31,24 +32,23 @@ else:
     index.storage_context.persist(persist_dir=PERSIST_DIR)
 
 query_engine = index.as_query_engine()
-
-# 🧠 Memory store for basic conversation history
 conversation_history = []
 
 app = Flask(__name__)
+CORS(app)
 
 @app.route("/chat", methods=["POST"])
 def chat():
     user_input = request.json.get("message", "")
     global conversation_history
 
-    # Basic memory simulation: prepend history to prompt
-    context = "\n".join([f"You: {msg['user']}\nBot: {msg['bot']}" for msg in conversation_history[-5:]])
+    # Contextual memory (basic agent-style chaining)
+    context = "\n".join([f"You: {m['user']}\nBot: {m['bot']}" for m in conversation_history[-5:]])
     full_prompt = f"{context}\nYou: {user_input}\nBot:"
-
     response = query_engine.query(full_prompt)
+
     conversation_history.append({"user": user_input, "bot": str(response)})
     return jsonify({"response": str(response)})
 
 if __name__ == "__main__":
-    app.run(port=5000)
+    app.run(host="0.0.0.0", port=5000)
