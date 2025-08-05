@@ -62,4 +62,5 @@ def chat():
     return jsonify({"response": str(response)})
 
 if __name__ == "__main__":
+    PORT = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=PORT)
