@@ -1,3 +1,5 @@
 .env
 venv
-
+work_assistant/index_storage
+work_assistant/data
+data/mbusi.txt
