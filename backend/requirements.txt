@@ -1,5 +1,0 @@
-Flask
-flask-cors
-llama-index
-llama-index-llms-ollama
-llama-index-embeddings-huggingface
