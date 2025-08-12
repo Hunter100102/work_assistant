@@ -1,30 +1,106 @@
-
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Work Assistant</title>
-  <link rel="icon" href="/static/favicon.ico">
-  <link rel="stylesheet" href="/static/styles.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>RAG Chat</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+    h1 { margin-bottom: 0.25rem; }
+    .card { border: 1px solid #ddd; border-radius: 12px; padding: 16px; margin: 12px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+    textarea, input[type="file"] { width: 100%; }
+    button { padding: 10px 16px; border-radius: 10px; border: 1px solid #ccc; cursor: pointer; }
+    .row { display: flex; gap: 12px; align-items: center; }
+    .row > * { flex: 1; }
+    .chatlog { border: 1px solid #eee; padding: 10px; height: 300px; overflow: auto; background: #fafafa; border-radius: 8px; }
+    .msg { margin: 6px 0; }
+    .user { font-weight: 600; }
+    .assistant { color: #333; }
+    .small { color: #666; font-size: 0.9em; }
+    .sources { font-size: 0.9em; margin-top: 8px; color: #444; }
+    .pill { display:inline-block; padding:2px 6px; border:1px solid #ddd; border-radius:999px; margin-right:6px; background:#fff; }
+  </style>
 </head>
 <body>
-  <main class="container">
-    <h1>Work Assistant</h1>
+  <h1>RAG Chat</h1>
+  <div class="small">Upload files, then ask questions grounded in them.</div>
 
-    <div class="chatbox">
-      <div id="log" class="log"></div>
-      <div class="controls">
-        <input id="msg" class="input" placeholder="Type a message…" />
-        <button id="send" class="btn">Send</button>
+  <div class="card">
+    <h3>Upload documents</h3>
+    <form id="uploadForm">
+      <input id="files" type="file" name="files" multiple accept=".txt,.md,.pdf"/>
+      <div style="margin-top:10px;">
+        <button type="submit">Ingest</button>
       </div>
+    </form>
+    <div id="ingestStatus" class="small"></div>
+  </div>
+
+  <div class="card">
+    <h3>Chat</h3>
+    <div class="chatlog" id="chatlog"></div>
+    <div class="row" style="margin-top:8px;">
+      <textarea id="message" rows="2" placeholder="Ask something about your data..."></textarea>
+      <button id="send">Send</button>
     </div>
+  </div>
 
-    <footer>
-      <a href="/health" target="_blank">Health check</a>
-    </footer>
-  </main>
+  <script>
+    const log = document.getElementById('chatlog');
+    const statusEl = document.getElementById('ingestStatus');
 
-  <script src="/static/app.js"></script>
+    function addMsg(role, text, sources=[]) {
+      const div = document.createElement('div');
+      div.className = 'msg';
+      div.innerHTML = `<span class="${role}">${role === 'user' ? 'You' : 'Assistant'}:</span> ${text}`;
+      if (sources && sources.length) {
+        const sDiv = document.createElement('div');
+        sDiv.className = 'sources';
+        sDiv.textContent = 'Sources: ';
+        sources.forEach(s => {
+          const sp = document.createElement('span');
+          sp.className = 'pill';
+          sp.textContent = s;
+          sDiv.appendChild(sp);
+        });
+        div.appendChild(sDiv);
+      }
+      log.appendChild(div);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      statusEl.textContent = 'Uploading...';
+      const form = new FormData();
+      const files = document.getElementById('files').files;
+      for (let f of files) form.append('files', f);
+      const res = await fetch('/ingest', { method: 'POST', body: form });
+      const data = await res.json();
+      if (data.ok) {
+        statusEl.textContent = `Ingested: ${data.added} chunks from ${data.files.length} file(s).`;
+      } else {
+        statusEl.textContent = 'Error: ' + (data.error || 'unknown');
+      }
+    });
+
+    document.getElementById('send').addEventListener('click', async () => {
+      const msg = document.getElementById('message').value.trim();
+      if (!msg) return;
+      addMsg('user', msg);
+      document.getElementById('message').value = '';
+      const res = await fetch('/chat', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ message: msg })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        addMsg('assistant', data.reply, data.sources || []);
+      } else {
+        addMsg('assistant', 'Error: ' + (data.error || 'unknown'));
+      }
+    });
+  </script>
 </body>
 </html>
