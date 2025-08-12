@@ -1,2 +1,0 @@
-***REMOVED***==?>***REMOVED***
-regex:sk-proj-[A-Za-z0-9_-]{20,}==?>***REMOVED***

@@ -1,0 +1,68 @@
+
+:root {
+  --bg: #0b0b0c;
+  --panel: #141416;
+  --text: #f2f3f5;
+  --muted: #9aa0a6;
+  --accent: #4f46e5;
+  --border: #222326;
+  --bot: #1f2937;
+  --user: #0b5c38;
+  --error: #7f1d1d;
+}
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif;
+}
+.container {
+  max-width: 840px;
+  margin: 0 auto;
+  padding: 24px;
+}
+h1 { font-size: 28px; margin: 0 0 16px; }
+.chatbox {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px;
+}
+.log {
+  height: 420px;
+  overflow: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #0f1012;
+  margin-bottom: 12px;
+}
+.row { padding: 10px 12px; border-radius: 10px; width: fit-content; max-width: 80%; }
+.row.user { background: var(--user); align-self: flex-end; }
+.row.bot { background: var(--bot); align-self: flex-start; }
+.row.error { background: var(--error); align-self: center; }
+.controls { display: flex; gap: 8px; }
+.input {
+  flex: 1;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #0e0f12; color: var(--text);
+  outline: none;
+}
+.btn {
+  background: var(--accent);
+  color: white;
+  border: 0;
+  padding: 0 16px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn:hover { filter: brightness(1.05); }
+footer { margin-top: 16px; color: var(--muted); }
+footer a { color: var(--muted); }

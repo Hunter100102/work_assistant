@@ -1,72 +1,69 @@
+
 import os
-from typing import List, Optional
-from fastapi import FastAPI, HTTPException
+from contextlib import asynccontextmanager
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel
-import httpx
+import uvicorn
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
-OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-REQUEST_TIMEOUT = float(os.getenv("REQUEST_TIMEOUT", "30"))
+# Load .env locally (Render uses its Environment tab)
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except Exception:
+    pass
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # startup
+    yield
+    # shutdown
 
-# Keep this permissive, or restrict to your site(s)
+app = FastAPI(lifespan=lifespan)
+
+# You can remove CORS entirely when UI and API share the same origin.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # e.g., ["https://automatingsolutions.com", "https://hunter100102.github.io"]
-    allow_credentials=True,
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
+    allow_credentials=False,
 )
 
-class Message(BaseModel):
-    role: str
-    content: str
+STATIC_DIR = "static"
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+@app.get("/", include_in_schema=False)
+def root():
+    return FileResponse(os.path.join(STATIC_DIR, "index.html"))
+
+# Avoid a 404 for browsers that auto-request /favicon.ico
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    path = os.path.join(STATIC_DIR, "favicon.ico")
+    if os.path.exists(path):
+        return FileResponse(path)
+    # 204 = No Content; avoids error noise in console
+    return Response(status_code=204)
 
 class ChatRequest(BaseModel):
-    messages: List[Message]
-    model: Optional[str] = None
-    temperature: Optional[float] = 0.2
-    max_tokens: Optional[int] = 512
+    message: str
 
-@app.get("/healthz")
-async def healthz():
+class ChatResponse(BaseModel):
+    reply: str
+
+@app.get("/health")
+async def health():
     return {"ok": True}
 
-_client: httpx.AsyncClient | None = None
-
-@app.on_event("startup")
-async def startup() -> None:
-    global _client
-    # Tight connection pool keeps memory small and responses snappy
-    limits = httpx.Limits(max_connections=20, max_keepalive_connections=10)
-    _client = httpx.AsyncClient(timeout=REQUEST_TIMEOUT, limits=limits)
-
-@app.on_event("shutdown")
-async def shutdown() -> None:
-    global _client
-    if _client:
-        await _client.aclose()
-        _client = None
-
-@app.post("/chat")
+@app.post("/chat", response_model=ChatResponse)
+@app.post("/chat/", response_model=ChatResponse)  # tolerate trailing slash
 async def chat(req: ChatRequest):
-    if not OPENAI_API_KEY:
-        raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
-    payload = {
-        "model": req.model or OPENAI_MODEL,
-        "messages": [{"role": m.role, "content": m.content} for m in req.messages],
-        "temperature": req.temperature,
-        "max_tokens": req.max_tokens,
-    }
-    headers = {"Authorization": f"Bearer {OPENAI_API_KEY}"}
-    try:
-        r = await _client.post(f"{OPENAI_BASE_URL}/chat/completions", json=payload, headers=headers)
-        r.raise_for_status()
-        data = r.json()
-        content = data["choices"][0]["message"]["content"]
-        return {"reply": content}
-    except httpx.HTTPError as e:
-        raise HTTPException(status_code=502, detail=str(e))
+    # TODO: call your real agent here (OpenAI/Ollama/etc.) using secrets from env
+    # For now we just echo:
+    return {"reply": f"echo: {req.message}"}
+
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="0.0.0.0", port=int(os.environ.get("PORT", "8000")))

@@ -1,18 +1,8 @@
+
 services:
   - type: web
     name: work-assistant
     env: python
-    plan: free
-    buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn -k uvicorn.workers.UvicornWorker main:app --bind 0.0.0.0:${PORT} --workers ${WEB_CONCURRENCY:-1} --threads ${THREADS:-2} --timeout ${TIMEOUT:-120} --keep-alive 25 --max-requests 200 --max-requests-jitter 50
-    envVars:
-      - key: OPENAI_API_KEY
-        sync: false         # set in dashboard
-      - key: WEB_CONCURRENCY
-        value: "1"
-      - key: THREADS
-        value: "2"
-      - key: TIMEOUT
-        value: "120"
-      - key: PYTHON_VERSION
-        value: "3.11.9"
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn -k uvicorn.workers.UvicornWorker main:app --bind 0.0.0.0:$PORT"
+    autoDeploy: true
