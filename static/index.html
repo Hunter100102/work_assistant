@@ -1,18 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>RAG Chat</title>
   <style>
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
-    h1 { margin-bottom: 0.25rem; }
     .card { border: 1px solid #ddd; border-radius: 12px; padding: 16px; margin: 12px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
-    textarea, input[type="file"] { width: 100%; }
+    textarea, input[type=file] { width: 100%; }
     button { padding: 10px 16px; border-radius: 10px; border: 1px solid #ccc; cursor: pointer; }
     .row { display: flex; gap: 12px; align-items: center; }
     .row > * { flex: 1; }
-    .chatlog { border: 1px solid #eee; padding: 10px; height: 300px; overflow: auto; background: #fafafa; border-radius: 8px; }
+    .chatlog { border: 1px solid #eee; padding: 10px; height: 320px; overflow: auto; background: #fafafa; border-radius: 8px; }
     .msg { margin: 6px 0; }
     .user { font-weight: 600; }
     .assistant { color: #333; }
@@ -28,12 +27,13 @@
   <div class="card">
     <h3>Upload documents</h3>
     <form id="uploadForm">
-      <input id="files" type="file" name="files" multiple accept=".txt,.md,.pdf"/>
+      <input id="files" type="file" name="files" multiple accept=".txt,.md,.pdf,.zip"/>
       <div style="margin-top:10px;">
         <button type="submit">Ingest</button>
       </div>
     </form>
     <div id="ingestStatus" class="small"></div>
+    <div class="small">Check <code>/stats</code> after ingest to confirm chunks present.</div>
   </div>
 
   <div class="card">
@@ -75,12 +75,21 @@
       const form = new FormData();
       const files = document.getElementById('files').files;
       for (let f of files) form.append('files', f);
-      const res = await fetch('/ingest', { method: 'POST', body: form });
-      const data = await res.json();
-      if (data.ok) {
-        statusEl.textContent = `Ingested: ${data.added} chunks from ${data.files.length} file(s).`;
-      } else {
-        statusEl.textContent = 'Error: ' + (data.error || 'unknown');
+      try {
+        const res = await fetch('/ingest', { method: 'POST', body: form });
+        const ct = res.headers.get('content-type') || '';
+        if (!ct.includes('application/json')) {
+          statusEl.textContent = 'Error: Non-JSON response.';
+          return;
+        }
+        const data = await res.json();
+        if (data.ok) {
+          statusEl.textContent = `Ingested: ${data.added} chunks from ${data.files.length} file(s).`;
+        } else {
+          statusEl.textContent = 'Error: ' + (data.error || 'unknown');
+        }
+      } catch (err) {
+        statusEl.textContent = 'Network error: ' + err;
       }
     });
 
@@ -89,16 +98,25 @@
       if (!msg) return;
       addMsg('user', msg);
       document.getElementById('message').value = '';
-      const res = await fetch('/chat', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ message: msg })
-      });
-      const data = await res.json();
-      if (data.ok) {
-        addMsg('assistant', data.reply, data.sources || []);
-      } else {
-        addMsg('assistant', 'Error: ' + (data.error || 'unknown'));
+      try {
+        const res = await fetch('/chat', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ message: msg })
+        });
+        const ct = res.headers.get('content-type') || '';
+        if (!ct.includes('application/json')) {
+          addMsg('assistant', 'Error: Non-JSON response from server.');
+          return;
+        }
+        const data = await res.json();
+        if (data.ok) {
+          addMsg('assistant', data.reply, data.sources || []);
+        } else {
+          addMsg('assistant', 'Error: ' + (data.error || 'unknown'));
+        }
+      } catch (err) {
+        addMsg('assistant', 'Network error: ' + err);
       }
     });
   </script>

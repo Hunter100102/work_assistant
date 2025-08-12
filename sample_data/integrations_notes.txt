@@ -1,0 +1,6 @@
+Integrations Notes
+- Square: webhooks for purchases and scheduled shifts
+- Twilio: SMS alerts for missed tasks
+- SendGrid: contact form emails
+- Google Maps: store locator
+Key detail: When a Square purchase includes the word "hookah" in the item description or note, send an SMS alert.

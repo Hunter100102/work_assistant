@@ -1,5 +1,5 @@
-import os, json, math
-from typing import List, Dict, Any, Iterable, Tuple
+import os, json
+from typing import List, Dict, Any, Tuple
 import numpy as np
 
 DEFAULT_PATH = "./storage"
@@ -8,11 +8,6 @@ EMB_FILE = "embeddings.npy"
 
 def _ensure_dir(path: str):
     os.makedirs(path, exist_ok=True)
-
-def cosine_sim(a: np.ndarray, b: np.ndarray) -> float:
-    denom = (np.linalg.norm(a) * np.linalg.norm(b))
-    if denom == 0: return 0.0
-    return float(np.dot(a, b) / denom)
 
 class TinyVectorStore:
     def __init__(self, storage_dir: str = DEFAULT_PATH):
@@ -31,7 +26,7 @@ class TinyVectorStore:
             self.emb = np.load(self.emb_path)
         else:
             self.meta = []
-            self.emb = np.zeros((0, 1536), dtype=np.float32)  # placeholder shape
+            self.emb = np.zeros((0, 1536), dtype=np.float32)  # default size for text-embedding-3-small
 
     def _save(self):
         with open(self.index_path, "w", encoding="utf-8") as f:
@@ -51,6 +46,10 @@ class TinyVectorStore:
     def search(self, query_emb: np.ndarray, top_k: int = 5) -> List[Tuple[float, Dict[str, Any]]]:
         if self.emb is None or len(self.meta) == 0:
             return []
-        sims = np.dot(self.emb, query_emb) / (np.linalg.norm(self.emb, axis=1) * np.linalg.norm(query_emb) + 1e-8)
+        # normalize matrix and query to avoid repeated norms
+        A = self.emb
+        A_norm = np.linalg.norm(A, axis=1, keepdims=True) + 1e-8
+        q = query_emb / (np.linalg.norm(query_emb) + 1e-8)
+        sims = (A / A_norm) @ q
         idx = np.argsort(-sims)[:top_k]
         return [(float(sims[i]), self.meta[i]) for i in idx]
