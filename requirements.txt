@@ -5,6 +5,7 @@ python-multipart==0.0.9
 openai==1.40.2
 numpy==1.26.4
 PyPDF2==3.0.1
-# pins to keep OpenAI client happy
+
+# Keep OpenAI client compatible:
 httpx==0.27.2
-httpcore==0.18.0
+httpcore==1.0.5
