@@ -1,51 +1,72 @@
 import os
-from fastapi import FastAPI
+from typing import List, Optional
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+import httpx
 
-# IMPORTANT: don't import heavy libs at module import time
-# (do it lazily inside request handlers or on_startup)
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+REQUEST_TIMEOUT = float(os.getenv("REQUEST_TIMEOUT", "30"))
+
 app = FastAPI()
 
-class ChatIn(BaseModel):
-    message: str
+# Keep this permissive, or restrict to your site(s)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # e.g., ["https://automatingsolutions.com", "https://hunter100102.github.io"]
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+class Message(BaseModel):
+    role: str
+    content: str
+
+class ChatRequest(BaseModel):
+    messages: List[Message]
+    model: Optional[str] = None
+    temperature: Optional[float] = 0.2
+    max_tokens: Optional[int] = 512
 
 @app.get("/healthz")
-def healthz():
+async def healthz():
     return {"ok": True}
 
-# Lazy singletons
-_llm_pipeline = {"ready": False, "obj": None, "err": None}
+_client: httpx.AsyncClient | None = None
 
 @app.on_event("startup")
-def init_lazy():
-    # Keep startup light to avoid OOM. Just verify we can import later.
-    # Do not download NLTK or build indexes here.
-    pass
+async def startup() -> None:
+    global _client
+    # Tight connection pool keeps memory small and responses snappy
+    limits = httpx.Limits(max_connections=20, max_keepalive_connections=10)
+    _client = httpx.AsyncClient(timeout=REQUEST_TIMEOUT, limits=limits)
 
-def get_llm():
-    """Lazy-load heavy stuff on first request."""
-    if not _llm_pipeline["ready"] and _llm_pipeline["err"] is None:
-        try:
-            # Import here (lazy)
-            # from llama_index.core import ...
-            # Minimal example — replace with your real loader but keep memory small
-            _llm_pipeline["obj"] = object()
-            _llm_pipeline["ready"] = True
-        except Exception as e:
-            _llm_pipeline["err"] = str(e)
-    return _llm_pipeline
+@app.on_event("shutdown")
+async def shutdown() -> None:
+    global _client
+    if _client:
+        await _client.aclose()
+        _client = None
 
 @app.post("/chat")
-def chat(payload: ChatIn):
-    pipe = get_llm()
-    if pipe["err"]:
-        return {"ok": False, "error": pipe["err"]}
-    # TODO: run your LlamaIndex / model inference here, but keep it lean
-    reply = f"You said: {payload.message}"
-    return {"ok": True, "reply": reply}
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", "10000"))
-    # Bind to 0.0.0.0 so Render can reach it
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=port)
+async def chat(req: ChatRequest):
+    if not OPENAI_API_KEY:
+        raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
+    payload = {
+        "model": req.model or OPENAI_MODEL,
+        "messages": [{"role": m.role, "content": m.content} for m in req.messages],
+        "temperature": req.temperature,
+        "max_tokens": req.max_tokens,
+    }
+    headers = {"Authorization": f"Bearer {OPENAI_API_KEY}"}
+    try:
+        r = await _client.post(f"{OPENAI_BASE_URL}/chat/completions", json=payload, headers=headers)
+        r.raise_for_status()
+        data = r.json()
+        content = data["choices"][0]["message"]["content"]
+        return {"reply": content}
+    except httpx.HTTPError as e:
+        raise HTTPException(status_code=502, detail=str(e))
